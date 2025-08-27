@@ -38,16 +38,9 @@ install_openresty_deb() {
     DEBIAN_FRONTEND=noninteractive apt-get update
     DEBIAN_FRONTEND=noninteractive apt-get install -y libreadline-dev lsb-release libpcre3 libpcre3-dev libldap2-dev libssl-dev perl build-essential
     DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends wget gnupg ca-certificates
-    wget -O - https://openresty.org/package/pubkey.gpg | apt-key add -
-    if [[ $IMAGE_BASE == "ubuntu" ]]; then
-        echo "deb http://openresty.org/package/${arch_path}ubuntu $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/openresty.list
-    fi
-
-    if [[ $IMAGE_BASE == "debian" ]]; then
-        echo "deb http://openresty.org/package/${arch_path}debian $(lsb_release -sc) openresty" | tee /etc/apt/sources.list.d/openresty.list
-    fi
     DEBIAN_FRONTEND=noninteractive apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y openresty-openssl111-dev openresty
+    dpkg -i ./deb/*.deb
+#    DEBIAN_FRONTEND=noninteractive apt-get install -y openresty-openssl111-dev openresty
 }
 
 install_openresty_rpm() {
@@ -63,12 +56,13 @@ install_luarocks() {
 }
 
 install_etcd() {
-    ETCD_ARCH="amd64"
+    ETCD_ARCH="loong64"
     if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
         ETCD_ARCH="arm64"
     fi
-    wget https://github.com/etcd-io/etcd/releases/download/"${RUNNING_ETCD_VERSION}"/etcd-"${RUNNING_ETCD_VERSION}"-linux-"${ETCD_ARCH}".tar.gz
-    tar -zxvf etcd-"${RUNNING_ETCD_VERSION}"-linux-"${ETCD_ARCH}".tar.gz
+    wget https://cloud.loongnix.cn/releases/loongarch64/etcd-io/etcd/v${RUNNING_ETCD_VERSION}/etcd-v${RUNNING_ETCD_VERSION}-linux-loong64.tar.gz
+#    wget https://github.com/etcd-io/etcd/releases/download/"${RUNNING_ETCD_VERSION}"/etcd-"${RUNNING_ETCD_VERSION}"-linux-"${ETCD_ARCH}".tar.gz
+    tar -zxvf etcd-"v${RUNNING_ETCD_VERSION}"-linux-"${ETCD_ARCH}".tar.gz
 }
 
 version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
@@ -122,12 +116,16 @@ install_apisix() {
 }
 
 install_golang() {
-    GO_VERSION="1.19.6"
-    GO_ARCH="amd64"
+    GO_VERSION="1.19.7"
+    GO_ARCH="loong64"
+    if [[ $ARCH == "loongarch64" ]] ; then
+	    GO_ARCH="loong64"
+    fi
     if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
         GO_ARCH="arm64"
     fi
-    wget https://dl.google.com/go/go"${GO_VERSION}".linux-"${GO_ARCH}".tar.gz
+    wget https://ftp.loongnix.cn/toolchain/golang/go-1.19/abi2.0/go1.19.7.linux-loong64.tar.gz 
+#    wget https://dl.google.com/go/go"${GO_VERSION}".linux-"${GO_ARCH}".tar.gz
     tar -xzf go"${GO_VERSION}".linux-"${GO_ARCH}".tar.gz
     mv go /usr/local
 }
@@ -204,5 +202,8 @@ install_dashboard)
     ;;
 install_luarocks)
     install_luarocks
+    ;;
+install_go)
+    install_golang
     ;;
 esac

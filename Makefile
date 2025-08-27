@@ -19,8 +19,8 @@ version=0
 checkout=0
 app=0
 type=0
-image_base="centos"
-image_tag="7"
+image_base="ghcr.io/loong64/opencloudos"
+image_tag="23-toolbox-20250821"
 iteration=0
 local_code_path=0
 openresty="openresty"
@@ -30,8 +30,8 @@ dashboard_repo="https://github.com/apache/apisix-dashboard"
 
 ### set the default image for deb package
 ifeq ($(type), deb)
-image_base="ubuntu"
-image_tag="20.04"
+image_base="debian"
+image_tag="trixie"
 endif
 
 buildx=0
@@ -44,12 +44,13 @@ cache_to=type=local,dest=/tmp/.buildx-cache
 ### $(4) is code path
 ifneq ($(buildx), True)
 define build
-	docker build -t apache/$(1)-$(3):$(version) \
+	docker build -t lcr.loongnix.cn/apache/$(1)-$(3):$(version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg VERSION=$(version) \
-		--build-arg IMAGE_BASE=$(image_base) \
-		--build-arg IMAGE_TAG=$(image_tag) \
 		--build-arg CODE_PATH=$(4) \
+		--build-arg https_proxy=$(https_proxy) \
+		--build-arg http_proxy=$(http_proxy) \
+		--build-arg BUILD_LATEST=3.2.0 \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 else
@@ -57,9 +58,9 @@ define build
 	docker buildx build -t apache/$(1)-$(3):$(version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg VERSION=$(version) \
-		--build-arg IMAGE_BASE=$(image_base) \
-		--build-arg IMAGE_TAG=$(image_tag) \
 		--build-arg CODE_PATH=$(4) \
+		--build-arg https_proxy=$(https_proxy) \
+		--build-arg http_proxy=$(http_proxy) \
 		--load \
 		--cache-from=$(cache_from) \
 		--cache-to=$(cache_to) \
@@ -80,6 +81,7 @@ define build-image
 		--build-arg OPENRESTY_NAME=$(4) \
 		--build-arg OPENRESTY_VERSION=$(5) \
 		--build-arg CODE_PATH=$(6) \
+		--build-arg https_proxy=$(https_proxy) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 else
@@ -88,6 +90,7 @@ define build-image
 		--build-arg OPENRESTY_NAME=$(4) \
 		--build-arg OPENRESTY_VERSION=$(5) \
 		--build-arg CODE_PATH=$(6) \
+		--build-arg https_proxy=$(https_proxy) \
 		--load \
 		--cache-from=$(cache_from) \
 		--cache-to=$(cache_to) \

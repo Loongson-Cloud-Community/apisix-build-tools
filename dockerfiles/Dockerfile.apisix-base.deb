@@ -1,12 +1,17 @@
+#ghcr.io/loong64/debian:unstable-slim
+#ARG IMAGE_BASE="ghcr.io/loong64/debian"
 ARG IMAGE_BASE="debian"
-ARG IMAGE_TAG="bullseye-slim"
+#ARG IMAGE_TAG="unstable-slim"
+ARG IMAGE_TAG="trixie-slim"
 
 FROM ${IMAGE_BASE}:${IMAGE_TAG} as build
 
+RUN apt-get update && apt install -y gnupg
 COPY ./utils/build-common.sh /tmp/build-common.sh
+COPY ./utils/install-common.sh /tmp/install-common.sh
 COPY build-apisix-base.sh /tmp/build-apisix-base.sh
 COPY ./utils/determine-dist.sh /tmp/determine-dist.sh
-
+COPY ./deb /tmp/deb
 WORKDIR /tmp
 
 ARG VERSION
@@ -18,7 +23,7 @@ ENV IMAGE_BASE=${IMAGE_BASE}
 ENV IMAGE_TAG=${IMAGE_TAG}
 ENV version=${VERSION}
 ENV build_latest=${BUILD_LATEST:-}
-
+ENV GOPROXY=https://goproxy.cn,direct
 RUN ./build-common.sh build_apisix_base_deb ${build_latest} \
     # determine dist and write it into /tmp/dist file
     && /tmp/determine-dist.sh

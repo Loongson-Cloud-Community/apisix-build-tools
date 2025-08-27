@@ -100,7 +100,7 @@ cd apisix-nginx-module-${apisix_nginx_module_ver}/patch || exit 1
 cd ../..
 
 cd wasm-nginx-module-${wasm_nginx_module_ver} || exit 1
-./install-wasmtime.sh
+#./install-wasmtime.sh
 cd ..
 
 cc_opt=${cc_opt:-}
@@ -114,21 +114,27 @@ grpc_engine_path="-DNGX_GRPC_CLI_ENGINE_PATH=$OR_PREFIX/libgrpc_engine.so -DNGX_
 cd openresty-${or_ver} || exit 1
 # FIXME: remove this once 1.21.4.2 is released
 rm -rf bundle/LuaJIT-2.1-20220411
-lj_ver=2.1-20230119
-wget "https://github.com/openresty/luajit2/archive/v$lj_ver.tar.gz" -O "LuaJIT-$lj_ver.tar.gz"
+lj_ver=2.1-20250529
+wget "https://github.com/loongson/luajit2/archive/refs/tags/v2.1-20250529-loongarch64.tar.gz" -O "LuaJIT-$lj_ver.tar.gz"
+#wget "https://github.com/openresty/luajit2/archive/v$lj_ver.tar.gz" -O "LuaJIT-$lj_ver.tar.gz"
 tar -xzf LuaJIT-$lj_ver.tar.gz
 mv luajit2-* bundle/LuaJIT-2.1-20220411
 
+# 运行时路径
+rpath_dirs="/usr/local/openresty/luajit/lib:/usr/local/openresty/zlib/lib:/usr/local/openresty/pcre/lib:/usr/local/openresty/openssl111/lib"
+
+# 编译时库路径
+lib_dirs="-L/usr/local/openresty/zlib/lib -L/usr/local/openresty/pcre/lib -L/usr/local/openresty/openssl111/lib"
+
 ./configure --prefix="$OR_PREFIX" \
     --with-cc-opt="-DAPISIX_BASE_VER=$version $grpc_engine_path $cc_opt" \
-    --with-ld-opt="-Wl,-rpath,$OR_PREFIX/wasmtime-c-api/lib $ld_opt" \
+    --with-ld-opt="-Wl,-rpath,$rpath_dirs $lib_dirs" \
     $debug_args \
     --add-module=../mod_dubbo-${mod_dubbo_ver} \
     --add-module=../ngx_multi_upstream_module-${ngx_multi_upstream_module_ver} \
     --add-module=../apisix-nginx-module-${apisix_nginx_module_ver} \
     --add-module=../apisix-nginx-module-${apisix_nginx_module_ver}/src/stream \
     --add-module=../apisix-nginx-module-${apisix_nginx_module_ver}/src/meta \
-    --add-module=../wasm-nginx-module-${wasm_nginx_module_ver} \
     --add-module=../lua-var-nginx-module-${lua_var_nginx_module_ver} \
     --add-module=../grpc-client-nginx-module-${grpc_client_nginx_module_ver} \
     --with-poll_module \
@@ -158,8 +164,7 @@ mv luajit2-* bundle/LuaJIT-2.1-20220411
     --with-threads \
     --with-compat \
     --with-luajit-xcflags="$luajit_xcflags" \
-    $no_pool_patch \
-    -j`nproc`
+    $no_pool_patch 
 
 make -j`nproc`
 sudo make install
@@ -170,7 +175,7 @@ sudo OPENRESTY_PREFIX="$OR_PREFIX" make install
 cd ..
 
 cd wasm-nginx-module-${wasm_nginx_module_ver} || exit 1
-sudo OPENRESTY_PREFIX="$OR_PREFIX" make install
+#sudo OPENRESTY_PREFIX="$OR_PREFIX" make install
 cd ..
 
 cd grpc-client-nginx-module-${grpc_client_nginx_module_ver} || exit 1
@@ -182,16 +187,24 @@ sudo OPENRESTY_PREFIX="$OR_PREFIX" sh -c 'PATH="${PATH}:/usr/local/go/bin" make 
 cd ..
 
 # package etcdctl
-ETCD_ARCH="amd64"
+ETCD_ARCH="loong64"
 ETCD_VERSION=${ETCD_VERSION:-'3.5.4'}
 ARCH=${ARCH:-$(uname -m | tr '[:upper:]' '[:lower:]')}
 
 if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
     ETCD_ARCH="arm64"
 fi
+if [[ $ARCH == "loongarch64" ]] ; then
+    ETCD_ARCH="loong64"
+fi
 
-wget -q https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
-tar xf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
+
+https_proxy= wget -q https://cloud.loongnix.cn/releases/loongarch64/etcd-io/etcd/v3.5.4/etcd-v3.5.4-linux-loong64.tar.gz
+tar xf etcd-v3.5.4-linux-loong64.tar.gz
+sudo cp etcd-v3.5.4-linux-loong64/etcdctl "$OR_PREFIX"/bin/
+rm -rf etcd-v3.5.4-linux-loong64
+#wget -q https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
+#tar xf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
 # ship etcdctl under the same bin dir of openresty so we can package it easily
-sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
-rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
+#sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
+#rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
