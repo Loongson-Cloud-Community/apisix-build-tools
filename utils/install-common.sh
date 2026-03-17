@@ -23,7 +23,8 @@ install_dependencies_rpm() {
         yum install -y --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms yum-utils
     else
         yum install -y wget tar gcc automake autoconf libtool make curl git which unzip sudo
-        yum install -y yum-utils
+        yum install -y epel-release
+        yum install -y yum-utils readline-devel
     fi
 }
 
@@ -90,7 +91,6 @@ install_apisix() {
     install_rust
 
     # build the lib and specify the storage path of the package installed
-    # To be removed after https://github.com/luarocks/luarocks/issues/1797 is fixed
     luarocks make ./apisix-master-${iteration}.rockspec --tree=/tmp/build/output/apisix/usr/local/apisix/deps --local
     chown -R "$(whoami)":"$(whoami)" /tmp/build/output
     cd ..
@@ -105,7 +105,6 @@ install_apisix() {
         sed -i "1s@.*@$bin@" /tmp/build/output/apisix/usr/bin/apisix
     fi
     cp -r /usr/local/apisix/* /tmp/build/output/apisix/usr/local/apisix/
-    cp -r /apisix/ui /tmp/build/output/apisix/usr/local/apisix/ui
     mv /tmp/build/output/apisix/usr/local/apisix/deps/share/lua/5.1/apisix /tmp/build/output/apisix/usr/local/apisix/
     if is_newer_version "${checkout_v}"; then
         bin='package.path = "/usr/local/apisix/?.lua;" .. package.path'
@@ -113,7 +112,6 @@ install_apisix() {
     else
         echo ''
     fi
-    sed -i '1i package.path = "/usr/local/apisix/deps/share/lua/5.1/?/init.lua;" .. package.path' /tmp/build/output/apisix/usr/local/apisix/apisix/cli/apisix.lua
     # delete unnecessary files
     rm -rf /tmp/build/output/apisix/usr/local/apisix/deps/lib64/luarocks
     rm -rf /tmp/build/output/apisix/usr/local/apisix/deps/lib/luarocks/rocks-5.1/apisix/master-"${iteration}"/doc
