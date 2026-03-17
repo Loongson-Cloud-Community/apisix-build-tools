@@ -26,4 +26,12 @@ COPY package-apisix.sh /package-apisix.sh
 COPY post-install-apisix-runtime.sh /post-install-apisix-runtime.sh
 COPY usr /usr
 
-RUN /package-apisix.sh
+COPY apisix.spec /apisix.spec
+RUN apt update && apt install file
+RUN rpmbuild -ba apisix.spec || echo 0 
+RUN mkdir output && cp ~/rpmbuild/RPMS/loongarch64/* /output
+CMD ["tail", "-f", "/dev/null"]
+#CMD ["/bin/bash"]
+
+
+####RUN /package-apisix.sh

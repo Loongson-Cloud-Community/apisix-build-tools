@@ -23,8 +23,8 @@ install_dependencies_rpm() {
         yum install -y --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms yum-utils
     else
         yum install -y wget tar gcc automake autoconf libtool make curl git which unzip sudo
-        yum install -y epel-release
-        yum install -y yum-utils readline-devel
+        #yum install -y epel-release
+        yum install -y dnf-plugins-core readline-devel
     fi
 }
 
@@ -74,8 +74,9 @@ is_newer_version() {
 }
 
 install_rust() {
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
-    source "$HOME/.cargo/env"
+#    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
+#    source "$HOME/.cargo/env"
+    yum install -y rust
 }
 
 install_apisix() {

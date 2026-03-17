@@ -2,7 +2,7 @@
 set -euo pipefail
 set -x
 
-dist="el7"
+dist="oe2403"
 if [ "${IMAGE_BASE}" == "centos" ]
 then
     dist="el${IMAGE_TAG}"
@@ -19,4 +19,4 @@ fi
 
 echo "${dist}" > /tmp/dist
 
-echo `cat /etc/os-release |grep VERSION_CODENAME|awk -F '=' '{print $2}'` > /tmp/codename
+echo `cat /etc/os-release |grep 'VERSION=' | awk -F '=' '{print $2}'` > /tmp/codename

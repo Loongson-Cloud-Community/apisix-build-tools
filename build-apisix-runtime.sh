@@ -25,9 +25,9 @@ OPENRESTY_VERSION="1.25.3.1"
 ngx_multi_upstream_module_ver="1.2.0"
 mod_dubbo_ver="1.0.2"
 apisix_nginx_module_ver="1.16.0"
-wasm_nginx_module_ver="0.7.0"
+wasm_nginx_module_ver="0.7.0-loongarch64"
 lua_var_nginx_module_ver="v0.5.3"
-grpc_client_nginx_module_ver="v0.5.0"
+grpc_client_nginx_module_ver="v0.5.0-loongarch64"
 lua_resty_events_ver="0.2.0"
 
 
@@ -79,6 +79,10 @@ install_openssl_3
 
 wget --no-check-certificate https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz
 tar -zxvpf openresty-${OPENRESTY_VERSION}.tar.gz > /dev/null
+rm -rf openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20231117/
+wget https://github.com/loongson/luajit2/archive/refs/tags/v2.1-20251030-loongarch64.tar.gz
+mkdir -p openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20251030
+tar -xf v2.1-20251030-loongarch64.tar.gz -C openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20251030 --strip-components=1
 
 if [ "$repo" == lua-resty-events ]; then
     cp -r "$prev_workdir" ./lua-resty-events-${lua_resty_events_ver}
@@ -116,7 +120,7 @@ if [ "$repo" == wasm-nginx-module ]; then
     cp -r "$prev_workdir" ./wasm-nginx-module-${wasm_nginx_module_ver}
 else
     git clone --depth=1 -b $wasm_nginx_module_ver \
-        https://github.com/api7/wasm-nginx-module.git \
+	https://github.com/Loongson-Cloud-Community/wasm-nginx-module.git \
         wasm-nginx-module-${wasm_nginx_module_ver}
 fi
 
@@ -132,7 +136,7 @@ if [ "$repo" == grpc-client-nginx-module ]; then
     cp -r "$prev_workdir" ./grpc-client-nginx-module-${grpc_client_nginx_module_ver}
 else
     git clone --depth=1 -b $grpc_client_nginx_module_ver \
-        https://github.com/api7/grpc-client-nginx-module \
+        https://github.com/Loongson-Cloud-Community/grpc-client-nginx-module.git \
         grpc-client-nginx-module-${grpc_client_nginx_module_ver}
 fi
 
@@ -239,15 +243,20 @@ cd ..
 
 # package etcdctl
 ETCD_ARCH="amd64"
-ETCD_VERSION=${ETCD_VERSION:-'3.5.4'}
+ETCD_VERSION=${ETCD_VERSION:-'3.5.5'}
 ARCH=${ARCH:-$(uname -m | tr '[:upper:]' '[:lower:]')}
 
 if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
     ETCD_ARCH="arm64"
 fi
+if [[ $ARCH == "loongarch64" ]]; then
+    ETCD_ARCH="loong64"
+fi
 
-wget -q https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
-tar xf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
+wget https://github.com/Loongson-Cloud-Community/etcd/releases/download/v3.5.5/etcd-3.5.5-loongarch64.tar.gz
+tar -xf etcd-3.5.5-loongarch64.tar.gz
 # ship etcdctl under the same bin dir of openresty so we can package it easily
-sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
-rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
+#sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
+#rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
+sudo cp etcd/bin/etcdctl "$OR_PREFIX"/bin/
+rm -rf etcd

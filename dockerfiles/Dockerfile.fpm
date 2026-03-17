@@ -1,4 +1,8 @@
-FROM ubuntu:focal
+#FROM ubuntu:focal
+FROM lcr.loongnix.cn/library/debian:latest
+
+RUN sed -i "s/http:\/\/deb.debian.org\/debian/http:\/\/mirrors.ustc.edu.cn\/debian/" /etc/apt/sources.list.d/debian.sources \
+    && apt update
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y git \

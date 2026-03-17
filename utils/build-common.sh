@@ -19,14 +19,16 @@ build_apisix_base_rpm() {
         source /opt/rh/gcc-toolset-9/enable
         set -eu
     else
-        dnf install -y yum-utils
-        yum -y install --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms gcc gcc-c++ patch wget git make sudo xz
+        dnf install -y dnf-plugins-core
+        yum -y install gcc gcc-c++ patch wget git make sudo xz
     fi
 
     command -v gcc
     gcc --version
 
-    yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+    yum-config-manager --add-repo https://cloud.loongnix.cn/os-packages/openeuler/openEuler-24.03-LTS-SP3/RPMS/
+    echo "gpgcheck=0" >> /etc/yum.repos.d/cloud.loongnix.cn_os-packages_openeuler_openEuler-24.03-LTS-SP3_RPMS_.repo
+    yum install -y /usr/bin/cpanm
     yum -y install openresty-openssl111-devel openresty-pcre-devel openresty-zlib-devel
 
     export_apisix_base_openresty_variables
@@ -82,14 +84,16 @@ build_apisix_runtime_rpm() {
         source /opt/rh/gcc-toolset-9/enable
         set -eu
     else
-        dnf install -y yum-utils
-        yum -y install --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms gcc gcc-c++ patch wget git make sudo xz cpanminus
+        dnf install -y dnf-plugins-core
+        yum -y install gcc gcc-c++ patch wget git make sudo xz
     fi
 
     command -v gcc
     gcc --version
 
-    yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+    yum-config-manager --add-repo https://cloud.loongnix.cn/os-packages/openeuler/openEuler-24.03-LTS-SP3/RPMS/
+    echo "gpgcheck=0" >> /etc/yum.repos.d/cloud.loongnix.cn_os-packages_openeuler_openEuler-24.03-LTS-SP3_RPMS_.repo
+    yum install -y /usr/bin/cpanm
     yum -y install openresty-pcre-devel openresty-zlib-devel
 
     export_openresty_variables

@@ -19,15 +19,19 @@ version=0
 checkout=0
 app=0
 type=0
-image_base="centos"
-image_tag="7"
+#image_base="centos"
+#image_tag="7"
+image_base="lcr.loongnix.cn/openeuler/openeuler"
+image_tag="24.03-LTS-SP3"
 iteration=0
 local_code_path=0
 openresty="apisix-runtime"
 artifact="0"
-runtime_version="0"
-apisix_repo="https://github.com/apache/apisix"
-apisix_runtime_repo="https://github.com/api7/apisix-build-tools.git"
+#runtime_version="0"
+runtime_version="1.2.0-loongarch"
+apisix_repo="https://github.com/Loongson-Cloud-Community/apisix"
+#apisix_runtime_repo="https://github.com/api7/apisix-build-tools.git"
+apisix_runtime_repo="https://github.com/Loongson-Cloud-Community/apisix-build-tools.git"
 dashboard_repo="https://github.com/apache/apisix-dashboard"
 
 ### set the default image for deb package
@@ -175,6 +179,7 @@ endef
 .PHONY: build-apisix-rpm
 build-apisix-rpm:
 ifeq ($(local_code_path), 0)
+	rm -rf ./apisix
 	git clone -b $(checkout) $(apisix_repo) ./apisix
 	$(call build,apisix,apisix,rpm,"./apisix")
 	rm -fr ./apisix
@@ -236,7 +241,8 @@ package-dashboard-deb:
 .PHONY: build-apisix-runtime-rpm
 build-apisix-runtime-rpm:
 ifeq ($(app),apisix)
-	git clone -b apisix-runtime/$(runtime_version) $(apisix_runtime_repo) ./apisix-runtime
+	rm -rf apisix-runtime
+	git clone -b apisix-runtime/$(runtime_version) $(apisix_runtime_repo) ./apisix-runtime --depth=1
 	$(call build_runtime,apisix-runtime,apisix-runtime,rpm,"./apisix-runtime")
 	rm -fr ./apisix-runtime
 else

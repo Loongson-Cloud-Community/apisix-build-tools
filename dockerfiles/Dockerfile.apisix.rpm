@@ -24,7 +24,7 @@ COPY --from=APISIX-RUNTIME /usr/local/openresty /usr/local/openresty
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
 ARG iteration="0"
-ARG apisix_repo="https://github.com/apache/apisix"
+ARG apisix_repo="https://github.com/Loongson-Cloud-Community/apisix"
 ARG checkout_v
 ARG IMAGE_BASE
 ARG IMAGE_TAG
