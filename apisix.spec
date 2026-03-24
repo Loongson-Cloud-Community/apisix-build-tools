@@ -1,6 +1,6 @@
 Name:           apisix
 Version:       3.9.1 
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Apache APISIX is a distributed gateway for APIs and Microservices, focused on high performance and reliability.
 
 License:        ASL 2.0
