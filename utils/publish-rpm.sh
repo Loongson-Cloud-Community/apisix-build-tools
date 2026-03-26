@@ -28,7 +28,7 @@ func_rpmsign_macros_init() {
 # Macros for signing RPMs.
 %_signature gpg
 %_gpg_path ${HOME}/.gnupg
-%_gpg_name ${GPG_MAIL}
+%_gpg_name ${GPG_NAME} ${GPG_MAIL}
 %_gpgbin /usr/bin/gpg
 %__gpg_sign_cmd %{__gpg} gpg --batch --verbose --no-armor --pinentry-mode loopback --passphrase-file ${VAR_GPG_PASSPHRASE} --no-secmem-warning -u "%{_gpg_name}" -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}
 _EOC_
@@ -59,6 +59,7 @@ func_cos_utils_credential_init() {
 # =======================================
 func_repo_init() {
     # ${1} - repo workbench path
+    mkdir -p "${1}"/centos/{7,8}/${ARCH}
     mkdir -p "${1}"/redhat/8/${ARCH}
 }
 
@@ -134,12 +135,20 @@ repo_init)
     func_repo_init /tmp
     ;;
 repo_backup)
+    func_repo_backup "${VAR_COS_BUCKET_REPO}" "centos" "${TAG_DATE}"
     func_repo_backup "${VAR_COS_BUCKET_REPO}" "redhat" "${TAG_DATE}"
     ;;
 repo_clone)
+    func_repo_clone "${VAR_COS_BUCKET_REPO}" "centos" /tmp/centos
     func_repo_clone "${VAR_COS_BUCKET_REPO}" "redhat" /tmp/redhat
     ;;
 repo_package_sync)
+    VAR_REPO_MAJOR_VER=(7 8)
+    for i in "${VAR_REPO_MAJOR_VER[@]}"; do
+        find "${VAR_RPM_WORKBENCH_DIR}" -type f -name "*el${i}.${ARCH}.rpm" \
+            -exec echo "repo sync for: {}" \; \
+            -exec cp -a {} /tmp/centos/"${i}"/${ARCH} \;
+    done
     find "${VAR_RPM_WORKBENCH_DIR}" -type f -name "*ubi8.6.${ARCH}.rpm" \
         -exec echo "repo sync for: {}" \; \
         -exec cp -a {} /tmp/redhat/8/${ARCH} \;
@@ -147,15 +156,20 @@ repo_package_sync)
 repo_repodata_rebuild)
     func_repo_repodata_rebuild /tmp/redhat
     func_repo_repodata_sign /tmp/redhat
+    func_repo_repodata_rebuild /tmp/centos
+    func_repo_repodata_sign /tmp/centos
     ;;
 repo_upload)
     func_repo_upload /tmp/redhat "${VAR_COS_BUCKET_CI}" "redhat"
+    func_repo_upload /tmp/centos "${VAR_COS_BUCKET_CI}" "centos"
     ;;
 repo_publish)
     func_repo_publish "${VAR_COS_BUCKET_CI}" "${VAR_COS_BUCKET_REPO}" "redhat"
+    func_repo_publish "${VAR_COS_BUCKET_CI}" "${VAR_COS_BUCKET_REPO}" "centos"
     ;;
 repo_backup_remove)
     func_repo_backup_remove "${VAR_COS_BUCKET_REPO}" "redhat" "${TAG_DATE}"
+    func_repo_backup_remove "${VAR_COS_BUCKET_REPO}" "centos" "${TAG_DATE}"
     ;;
 rpm_gpg_sign)
     func_rpmsign_macros_init

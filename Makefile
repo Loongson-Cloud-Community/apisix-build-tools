@@ -19,32 +19,25 @@ version=0
 checkout=0
 app=0
 type=0
-image_base="registry.access.redhat.com/ubi8/ubi"
-image_tag="8.6"
+#image_base="centos"
+#image_tag="7"
+image_base="cr.loongnix.cn/openanolis/anolisos"
+image_tag="8.10"
 iteration=0
 local_code_path=0
 openresty="apisix-runtime"
 artifact="0"
-runtime_version="0"
-apisix_repo="https://github.com/apache/apisix"
-apisix_runtime_repo="https://github.com/api7/apisix-build-tools.git"
+#runtime_version="0"
+runtime_version="1.2.0-loongarch-abi1.0"
+apisix_repo="https://github.com/Loongson-Cloud-Community/apisix"
+#apisix_runtime_repo="https://github.com/api7/apisix-build-tools.git"
+apisix_runtime_repo="https://github.com/Loongson-Cloud-Community/apisix-build-tools.git"
 dashboard_repo="https://github.com/apache/apisix-dashboard"
 
 ### set the default image for deb package
 ifeq ($(type), deb)
 image_base="ubuntu"
 image_tag="20.04"
-endif
-# Set arch to linux/amd64 if it's not defined
-arch ?= linux/amd64
-
-# Detect the CPU architecture
-CPU_ARCH := $(shell uname -m)
-# Map the architecture to Docker platform
-ifeq ($(CPU_ARCH), arm64)
-    arch := linux/arm64
-else ifeq ($(CPU_ARCH), aarch64)
-    arch := linux/arm64
 endif
 
 buildx=0
@@ -57,7 +50,7 @@ cache_to=type=local,dest=/tmp/.buildx-cache
 ### $(4) is code path
 ifneq ($(buildx), True)
 define build
-	docker build -t apache/$(1)-$(3):$(version) \
+	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg PACKAGE_TYPE=$(3) \
 		--build-arg VERSION=$(version) \
@@ -65,7 +58,6 @@ define build
 		--build-arg IMAGE_BASE=$(image_base) \
 		--build-arg IMAGE_TAG=$(image_tag) \
 		--build-arg CODE_PATH=$(4) \
-		--platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 else
@@ -81,7 +73,6 @@ define build
 		--load \
 		--cache-from=$(cache_from) \
 		--cache-to=$(cache_to) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 endif
@@ -93,14 +84,13 @@ endif
 ### $(4) is code path
 ifneq ($(buildx), True)
 define build_runtime
-	docker build -t apache/$(1)-$(3):$(runtime_version) \
+	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(runtime_version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg VERSION=$(version) \
 		--build-arg RUNTIME_VERSION=$(runtime_version) \
 		--build-arg IMAGE_BASE=$(image_base) \
 		--build-arg IMAGE_TAG=$(image_tag) \
 		--build-arg CODE_PATH=$(4) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 else
@@ -115,7 +105,6 @@ define build_runtime
 		--load \
 		--cache-from=$(cache_from) \
 		--cache-to=$(cache_to) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 endif
@@ -129,11 +118,10 @@ endif
 ### $(6) is code path
 ifneq ($(buildx), True)
 define build-image
-	docker build -t apache/$(1)-$(3):$(version) \
+	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(version) \
 		--build-arg OPENRESTY_NAME=$(4) \
 		--build-arg OPENRESTY_VERSION=$(5) \
 		--build-arg CODE_PATH=$(6) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 else
@@ -145,7 +133,6 @@ define build-image
 		--load \
 		--cache-from=$(cache_from) \
 		--cache-to=$(cache_to) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.$(2).$(3) .
 endef
 endif
@@ -154,7 +141,7 @@ endif
 ### $(1) is name
 ### $(2) is package type
 define package
-	docker build -t apache/$(1)-packaged-$(2):$(version) \
+	docker build --security-opt seccomp=unconfined -t apache/$(1)-packaged-$(2):$(version) \
 		--build-arg VERSION=$(version) \
 		--build-arg ITERATION=$(iteration) \
 		--build-arg PACKAGE_VERSION=$(version) \
@@ -162,19 +149,18 @@ define package
 		--build-arg PACKAGE_TYPE=$(2) \
 		--build-arg OPENRESTY=$(openresty) \
 		--build-arg ARTIFACT=$(artifact) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.package.$(1) .
-	docker run -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(version)
+	docker run --security-opt seccomp=unconfined -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(version)
 	docker cp output:/output ${PWD}
 	docker stop output
-	docker system prune -a -f
+#	docker system prune -a -f
 endef
 
 ### function for packing
 ### $(1) is name
 ### $(2) is package type
 define package_runtime
-	docker build -t apache/$(1)-packaged-$(2):$(runtime_version) \
+	docker build --security-opt seccomp=unconfined -t apache/$(1)-packaged-$(2):$(runtime_version) \
 		--build-arg VERSION=$(version) \
 		--build-arg ITERATION=$(iteration) \
 		--build-arg PACKAGE_VERSION=$(version) \
@@ -182,20 +168,19 @@ define package_runtime
 		--build-arg PACKAGE_TYPE=$(2) \
 		--build-arg OPENRESTY=$(openresty) \
 		--build-arg ARTIFACT=$(artifact) \
-    --platform $(arch) \
 		-f ./dockerfiles/Dockerfile.package.$(1) .
-	docker run -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(runtime_version)
+	docker run --security-opt seccomp=unconfined -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(runtime_version)
 	docker cp output:/output ${PWD}
 	docker stop output
-	docker system prune -a -f
+#	docker system prune -a -f
 endef
 
 ### build apisix:
 .PHONY: build-apisix-rpm
 build-apisix-rpm:
 ifeq ($(local_code_path), 0)
-	git clone -b $(checkout) $(apisix_repo) --depth 1 ./apisix
-	./build-apisix-dashboard.sh ./apisix
+	rm -rf ./apisix
+	git clone -b $(checkout) $(apisix_repo) ./apisix
 	$(call build,apisix,apisix,rpm,"./apisix")
 	rm -fr ./apisix
 else
@@ -205,8 +190,7 @@ endif
 .PHONY: build-apisix-deb
 build-apisix-deb:
 ifeq ($(local_code_path), 0)
-	git clone -b $(checkout) $(apisix_repo) --depth 1 ./apisix
-	./build-apisix-dashboard.sh ./apisix
+	git clone -b $(checkout) $(apisix_repo) ./apisix
 	$(call build,apisix,apisix,deb,"./apisix")
 	rm -fr ./apisix
 else
@@ -257,7 +241,8 @@ package-dashboard-deb:
 .PHONY: build-apisix-runtime-rpm
 build-apisix-runtime-rpm:
 ifeq ($(app),apisix)
-	git clone -b apisix-runtime/$(runtime_version) $(apisix_runtime_repo) ./apisix-runtime
+	rm -rf apisix-runtime
+	git clone -b apisix-runtime/$(runtime_version) $(apisix_runtime_repo) ./apisix-runtime --depth=1
 	$(call build_runtime,apisix-runtime,apisix-runtime,rpm,"./apisix-runtime")
 	rm -fr ./apisix-runtime
 else
@@ -311,14 +296,13 @@ package-apisix-base-deb:
 .PHONY: build-fpm
 ifneq ($(buildx), True)
 build-fpm:
-	docker build --platform $(arch) -t api7/fpm - < ./dockerfiles/Dockerfile.fpm
+	docker build --security-opt seccomp=unconfined -t api7/fpm - < ./dockerfiles/Dockerfile.fpm
 else
 build-fpm:
 	docker buildx build \
 	--load \
 	--cache-from=$(cache_from) \
 	--cache-to=$(cache_to) \
-	--platform $(arch) \
 	-t api7/fpm - < ./dockerfiles/Dockerfile.fpm
 endif
 

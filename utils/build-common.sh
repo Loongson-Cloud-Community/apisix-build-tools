@@ -6,13 +6,29 @@ ARCH=${ARCH:-`(uname -m | tr '[:upper:]' '[:lower:]')`}
 BUILD_PATH=${BUILD_PATH:-`pwd`}
 
 build_apisix_base_rpm() {
-    dnf install -y yum-utils
-    yum -y install --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms gcc gcc-c++ patch wget git make sudo xz
+    if [[ $(rpm --eval '%{centos_ver}') == "7" ]]; then
+        yum -y install centos-release-scl
+        yum -y install devtoolset-9 patch wget git make sudo
+        set +eu
+        source scl_source enable devtoolset-9
+        set -eu
+    elif [[ $(rpm --eval '%{centos_ver}') == "8" ]]; then
+        dnf install -y gcc-toolset-9-toolchain patch wget git make sudo
+        dnf install -y yum-utils
+        set +eu
+        source /opt/rh/gcc-toolset-9/enable
+        set -eu
+    else
+        dnf install -y dnf-plugins-core
+        yum -y install gcc gcc-c++ patch wget git make sudo xz
+    fi
 
     command -v gcc
     gcc --version
 
-    yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+    yum-config-manager --add-repo http://10.130.43.27/os-packages/openanolis/8.10/RPMS
+    echo "gpgcheck=0" >> /etc/yum.repos.d/10.130.43.27_os-packages_openanolis_8.10_RPMS.repo
+    yum install -y /usr/bin/cpanm
     yum -y install openresty-openssl111-devel openresty-pcre-devel openresty-zlib-devel
 
     export_apisix_base_openresty_variables
@@ -55,13 +71,29 @@ build_apisix_base_apk() {
 }
 
 build_apisix_runtime_rpm() {
-    dnf install -y yum-utils
-    yum -y install --disablerepo=* --enablerepo=ubi-8-appstream-rpms --enablerepo=ubi-8-baseos-rpms gcc gcc-c++ patch wget git make sudo xz cpanminus
+    if [[ $(rpm --eval '%{centos_ver}') == "7" ]]; then
+        yum -y install centos-release-scl
+        yum -y install devtoolset-9 patch wget git make sudo cpanminus
+        set +eu
+        source scl_source enable devtoolset-9
+        set -eu
+    elif [[ $(rpm --eval '%{centos_ver}') == "8" ]]; then
+        dnf install -y gcc-toolset-9-toolchain patch wget git make sudo cpanminus
+        dnf install -y yum-utils
+        set +eu
+        source /opt/rh/gcc-toolset-9/enable
+        set -eu
+    else
+        dnf install -y dnf-plugins-core
+        yum -y install gcc gcc-c++ patch wget git make sudo xz
+    fi
 
     command -v gcc
     gcc --version
 
-    yum-config-manager --add-repo https://openresty.org/package/centos/openresty.repo
+    yum-config-manager --add-repo http://10.130.43.27/os-packages/openanolis/8.10/RPMS
+    echo "gpgcheck=0" >> /etc/yum.repos.d/10.130.43.27_os-packages_openanolis_8.10_RPMS.repo
+    yum install -y /usr/bin/cpanm
     yum -y install openresty-pcre-devel openresty-zlib-devel
 
     export_openresty_variables

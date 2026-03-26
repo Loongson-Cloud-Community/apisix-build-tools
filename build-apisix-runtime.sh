@@ -20,13 +20,14 @@ ld_opt=${ld_opt:-"-L$zlib_prefix/lib -L$pcre_prefix/lib -L$OPENSSL_PREFIX/lib -W
 
 
 # dependencies for building openresty
-OPENSSL_VERSION=${OPENSSL_VERSION:-"3.4.1"}
-OPENRESTY_VERSION="1.27.1.2"
-ngx_multi_upstream_module_ver="1.3.2"
+OPENSSL_VERSION=${OPENSSL_VERSION:-"3.2.0"}
+OPENRESTY_VERSION="1.25.3.1"
+ngx_multi_upstream_module_ver="1.2.0"
 mod_dubbo_ver="1.0.2"
-apisix_nginx_module_ver="1.19.3"
-wasm_nginx_module_ver="0.7.0"
+apisix_nginx_module_ver="1.16.0"
+wasm_nginx_module_ver="0.7.0-loongarch64-abi1.0"
 lua_var_nginx_module_ver="v0.5.3"
+grpc_client_nginx_module_ver="v0.5.0-loongarch64-abi1.0"
 lua_resty_events_ver="0.2.0"
 
 
@@ -37,7 +38,7 @@ install_openssl_3(){
     fi
     # required for openssl 3.x config
     cpanm IPC/Cmd.pm
-    wget --no-check-certificate https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz
+    wget --no-check-certificate https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
     tar xvf openssl-${OPENSSL_VERSION}.tar.gz
     cd openssl-${OPENSSL_VERSION}/
     export LDFLAGS="-Wl,-rpath,$zlib_prefix/lib:$OPENSSL_PREFIX/lib"
@@ -78,6 +79,11 @@ install_openssl_3
 
 wget --no-check-certificate https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz
 tar -zxvpf openresty-${OPENRESTY_VERSION}.tar.gz > /dev/null
+rm -rf openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20231117/
+wget https://github.com/loongson/luajit2/archive/refs/tags/v2.1-20251030-loongarch64.tar.gz
+mkdir -p openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20251030
+tar -xf v2.1-20251030-loongarch64.tar.gz -C openresty-${OPENRESTY_VERSION}/bundle/LuaJIT-2.1-20251030 --strip-components=1
+sed -i 's/\$luajit_xcflags .= " -DLUAJIT_ENABLE_LUA52COMPAT";/# \0/' openresty-${OPENRESTY_VERSION}/configure
 
 if [ "$repo" == lua-resty-events ]; then
     cp -r "$prev_workdir" ./lua-resty-events-${lua_resty_events_ver}
@@ -115,7 +121,7 @@ if [ "$repo" == wasm-nginx-module ]; then
     cp -r "$prev_workdir" ./wasm-nginx-module-${wasm_nginx_module_ver}
 else
     git clone --depth=1 -b $wasm_nginx_module_ver \
-        https://github.com/api7/wasm-nginx-module.git \
+	https://github.com/Loongson-Cloud-Community/wasm-nginx-module.git \
         wasm-nginx-module-${wasm_nginx_module_ver}
 fi
 
@@ -125,6 +131,14 @@ else
     git clone --depth=1 -b $lua_var_nginx_module_ver \
         https://github.com/api7/lua-var-nginx-module \
         lua-var-nginx-module-${lua_var_nginx_module_ver}
+fi
+
+if [ "$repo" == grpc-client-nginx-module ]; then
+    cp -r "$prev_workdir" ./grpc-client-nginx-module-${grpc_client_nginx_module_ver}
+else
+    git clone --depth=1 -b $grpc_client_nginx_module_ver \
+        https://github.com/Loongson-Cloud-Community/grpc-client-nginx-module.git \
+        grpc-client-nginx-module-${grpc_client_nginx_module_ver}
 fi
 
 cd ngx_multi_upstream_module-${ngx_multi_upstream_module_ver} || exit 1
@@ -140,8 +154,15 @@ cd wasm-nginx-module-${wasm_nginx_module_ver} || exit 1
 cd ..
 
 
-luajit_xcflags=${luajit_xcflags:="-DLUAJIT_NUMMODE=2 -DLUAJIT_ENABLE_LUA52COMPAT"}
+#luajit_xcflags=${luajit_xcflags:="-DLUAJIT_NUMMODE=2 -DLUAJIT_ENABLE_LUA52COMPAT"}
+#fix build error for loongarch64
+#/usr/bin/ld: .eh_frame_hdr refers to overlapping FDEs.
+#/usr/bin/ld: final link failed: Bad value
+luajit_xcflags=${luajit_xcflags:="-DLUAJIT_NUMMODE=2"}
 no_pool_patch=${no_pool_patch:-}
+# TODO: remove old NGX_HTTP_GRPC_CLI_ENGINE_PATH once we have released a new
+# version of grpc-client-nginx-module
+grpc_engine_path="-DNGX_GRPC_CLI_ENGINE_PATH=$OR_PREFIX/libgrpc_engine.so -DNGX_HTTP_GRPC_CLI_ENGINE_PATH=$OR_PREFIX/libgrpc_engine.so"
 
 cd openresty-${OPENRESTY_VERSION} || exit 1
 
@@ -159,7 +180,7 @@ fi
 
 
 ./configure --prefix="$OR_PREFIX" \
-    --with-cc-opt="-DAPISIX_RUNTIME_VER=$runtime_version $cc_opt" \
+    --with-cc-opt="-DAPISIX_RUNTIME_VER=$runtime_version $grpc_engine_path $cc_opt" \
     --with-ld-opt="-Wl,-rpath,$OR_PREFIX/wasmtime-c-api/lib $ld_opt" \
     $debug_args \
     --add-module=../mod_dubbo-${mod_dubbo_ver} \
@@ -169,9 +190,9 @@ fi
     --add-module=../apisix-nginx-module-${apisix_nginx_module_ver}/src/meta \
     --add-module=../wasm-nginx-module-${wasm_nginx_module_ver} \
     --add-module=../lua-var-nginx-module-${lua_var_nginx_module_ver} \
+    --add-module=../grpc-client-nginx-module-${grpc_client_nginx_module_ver} \
     --add-module=../lua-resty-events-${lua_resty_events_ver} \
     --with-poll_module \
-    --with-pcre-jit \
     --without-http_rds_json_module \
     --without-http_rds_csv_module \
     --without-lua_rds_parser \
@@ -220,17 +241,26 @@ cd wasm-nginx-module-${wasm_nginx_module_ver} || exit 1
 sudo OPENRESTY_PREFIX="$OR_PREFIX" make install
 cd ..
 
+cd grpc-client-nginx-module-${grpc_client_nginx_module_ver} || exit 1
+sudo OPENRESTY_PREFIX="$OR_PREFIX" make install
+cd ..
+
 # package etcdctl
 ETCD_ARCH="amd64"
-ETCD_VERSION=${ETCD_VERSION:-'3.5.4'}
+ETCD_VERSION=${ETCD_VERSION:-'3.5.5'}
 ARCH=${ARCH:-$(uname -m | tr '[:upper:]' '[:lower:]')}
 
 if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
     ETCD_ARCH="arm64"
 fi
+if [[ $ARCH == "loongarch64" ]]; then
+    ETCD_ARCH="loong64"
+fi
 
-wget -q https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
-tar xf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}.tar.gz
+wget https://cloud.loongnix.cn/releases/loongarch64abi1/etcd-io/etcd/3.5.5/etcd-3.5.5-loongarch64.tar.gz
+tar -xf etcd-3.5.5-loongarch64.tar.gz
 # ship etcdctl under the same bin dir of openresty so we can package it easily
-sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
-rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
+#sudo cp etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}/etcdctl "$OR_PREFIX"/bin/
+#rm -rf etcd-v${ETCD_VERSION}-linux-${ETCD_ARCH}
+sudo cp etcd/bin/etcdctl "$OR_PREFIX"/bin/
+rm -rf etcd
