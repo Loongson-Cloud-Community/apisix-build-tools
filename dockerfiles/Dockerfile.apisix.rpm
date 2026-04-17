@@ -31,6 +31,8 @@ ARG IMAGE_TAG
 ARG CODE_PATH
 
 # install dependencies
+ENV https_proxy=http://10.2.10.197:7890
+ENV http_proxy=http://10.2.10.197:7890
 RUN /install-common.sh install_apisix_dependencies_rpm
 
 ENV checkout_v=${checkout_v}

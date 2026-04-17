@@ -4,7 +4,7 @@
 
 Name:           apisix
 Version:       3.9.1 
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Apache APISIX is a distributed gateway for APIs and Microservices, focused on high performance and reliability.
 
 License:        ASL 2.0
@@ -50,6 +50,6 @@ cp -r /usr/lib/systemd/system/openresty.service %{buildroot}/usr/lib/systemd/sys
 
 
 %changelog
-* Wed Mar 18 2026 Wenlong Zhang <zhangwenlong@loongson.cn>
+* Wed Mar 18 2026 Wenlong Zhang <zhangwenlong@loongson.cn> 3.9.1-3
 - init
 

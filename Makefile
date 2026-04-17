@@ -50,7 +50,7 @@ cache_to=type=local,dest=/tmp/.buildx-cache
 ### $(4) is code path
 ifneq ($(buildx), True)
 define build
-	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(version) \
+	docker build  -t apache/$(1)-$(3):$(version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg PACKAGE_TYPE=$(3) \
 		--build-arg VERSION=$(version) \
@@ -84,7 +84,7 @@ endif
 ### $(4) is code path
 ifneq ($(buildx), True)
 define build_runtime
-	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(runtime_version) \
+	docker build  -t apache/$(1)-$(3):$(runtime_version) \
 		--build-arg checkout_v=$(checkout) \
 		--build-arg VERSION=$(version) \
 		--build-arg RUNTIME_VERSION=$(runtime_version) \
@@ -118,7 +118,7 @@ endif
 ### $(6) is code path
 ifneq ($(buildx), True)
 define build-image
-	docker build --security-opt seccomp=unconfined -t apache/$(1)-$(3):$(version) \
+	docker build  -t apache/$(1)-$(3):$(version) \
 		--build-arg OPENRESTY_NAME=$(4) \
 		--build-arg OPENRESTY_VERSION=$(5) \
 		--build-arg CODE_PATH=$(6) \
@@ -141,7 +141,7 @@ endif
 ### $(1) is name
 ### $(2) is package type
 define package
-	docker build --security-opt seccomp=unconfined -t apache/$(1)-packaged-$(2):$(version) \
+	docker build  -t apache/$(1)-packaged-$(2):$(version) \
 		--build-arg VERSION=$(version) \
 		--build-arg ITERATION=$(iteration) \
 		--build-arg PACKAGE_VERSION=$(version) \
@@ -150,7 +150,7 @@ define package
 		--build-arg OPENRESTY=$(openresty) \
 		--build-arg ARTIFACT=$(artifact) \
 		-f ./dockerfiles/Dockerfile.package.$(1) .
-	docker run --security-opt seccomp=unconfined -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(version)
+	docker run  -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(version)
 	docker cp output:/output ${PWD}
 	docker stop output
 #	docker system prune -a -f
@@ -160,7 +160,7 @@ endef
 ### $(1) is name
 ### $(2) is package type
 define package_runtime
-	docker build --security-opt seccomp=unconfined -t apache/$(1)-packaged-$(2):$(runtime_version) \
+	docker build  -t apache/$(1)-packaged-$(2):$(runtime_version) \
 		--build-arg VERSION=$(version) \
 		--build-arg ITERATION=$(iteration) \
 		--build-arg PACKAGE_VERSION=$(version) \
@@ -169,7 +169,7 @@ define package_runtime
 		--build-arg OPENRESTY=$(openresty) \
 		--build-arg ARTIFACT=$(artifact) \
 		-f ./dockerfiles/Dockerfile.package.$(1) .
-	docker run --security-opt seccomp=unconfined -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(runtime_version)
+	docker run  -d --rm --name output --net="host" apache/$(1)-packaged-$(2):$(runtime_version)
 	docker cp output:/output ${PWD}
 	docker stop output
 #	docker system prune -a -f
@@ -296,7 +296,7 @@ package-apisix-base-deb:
 .PHONY: build-fpm
 ifneq ($(buildx), True)
 build-fpm:
-	docker build --security-opt seccomp=unconfined -t api7/fpm - < ./dockerfiles/Dockerfile.fpm
+	docker build  -t api7/fpm - < ./dockerfiles/Dockerfile.fpm
 else
 build-fpm:
 	docker buildx build \
